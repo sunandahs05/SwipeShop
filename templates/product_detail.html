@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container">
+    <h2>Product Detail</h2>
+    <div id="productAlert" class="alert"></div>
+
+    <div id="productContent" style="display: flex; flex-direction: column; gap: 1.5rem; margin-top: 1.5rem;">
+        <img id="pdImage" src="" alt="Product" style="width: 100%; border-radius: 8px; max-height: 400px; object-fit: cover;">
+        <div>
+            <h3 id="pdTitle">Product Name</h3>
+            <p id="pdPrice" style="font-size: 1.5rem; color: var(--primary-color); font-weight: bold; margin-bottom: 1rem;">$0.00</p>
+            <p id="pdDesc" style="line-height: 1.6; color: #555;">Product description goes here.</p>
+        </div>
+        
+        <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+            <input type="number" id="qtyInput" value="1" min="1" style="width: 80px; padding: 0.5rem; border-radius: 8px; border: 1px solid #ccc;">
+            <button id="btnAddToCart" class="btn">Add to Cart</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Mocking individual product fetch based on URL parameter ?id=X
+const params = new URLSearchParams(window.location.search);
+const productId = params.get('id') || 1;
+
+async function loadProduct() {
+    try {
+        // Using GET /api/products, then finding the specific one, though normally we'd have GET /api/products/:id
+        const products = await fetchAPI('/products');
+        const product = products.find(p => p.product_id == productId || p.id == productId);
+        
+        if (!product) throw new Error("Product not found");
+
+        document.getElementById('pdTitle').textContent = product.name;
+        document.getElementById('pdPrice').textContent = "$" + (product.price || 0).toFixed(2);
+        document.getElementById('pdDesc').textContent = product.description || 'No description provided for this item.';
+        document.getElementById('pdImage').src = product.image_url || 'https://via.placeholder.com/600x400?text=Product+Image';
+        
+    } catch(err) {
+        showMessage('productAlert', err.message, true);
+    }
+}
+
+document.getElementById('btnAddToCart').addEventListener('click', async () => {
+    const qty = document.getElementById('qtyInput').value;
+    try {
+        await fetchAPI('/cart/add', 'POST', { product_id: productId, qty: parseInt(qty) });
+        showMessage('productAlert', 'Added to cart successfully!', false);
+    } catch(err) {
+        showMessage('productAlert', err.message, true);
+    }
+});
+
+document.addEventListener('DOMContentLoaded', loadProduct);
+</script>
+{% endblock %}

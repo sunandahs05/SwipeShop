@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 style="text-align: center; margin-bottom: 1rem;">Discover Products</h2>
+<div id="feedAlert" class="alert" style="max-width: 500px; margin: 0 auto;"></div>
+
+<div class="swipe-container" id="swiperContainer">
+    <!-- Cards will be injected here via JS -->
+    <div id="noMoreCards" style="display: none; text-align: center;">
+        <h3>No more products to show!</h3>
+        <p>Come back later or check your <a href="/cart">Cart</a>.</p>
+    </div>
+</div>
+
+<div class="action-buttons" style="max-width: 350px; margin: 0 auto;">
+    <button class="btn-circle btn-dislike" id="btnDislike" aria-label="Dislike" onclick="handleButtonClick(false)">✕</button>
+    <button class="btn-circle btn-like" id="btnLike" aria-label="Like" onclick="handleButtonClick(true)">♥</button>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let products = [];
+let currentCardIndex = 0;
+
+// Elements
+const container = document.getElementById('swiperContainer');
+const noMoreCards = document.getElementById('noMoreCards');
+
+// Fetch feed on load
+async function loadFeed() {
+    try {
+        products = await fetchAPI('/feed');
+        if (products.length === 0) {
+            noMoreCards.style.display = 'block';
+        } else {
+            renderCards();
+        }
+    } catch (err) {
+        showMessage('feedAlert', err.message, true);
+    }
+}
+
+function renderCards() {
+    // Render cards from back to front so the first is on top
+    for (let i = products.length - 1; i >= 0; i--) {
+        const product = products[i];
+        const card = document.createElement('div');
+        card.className = 'swipe-card';
+        card.dataset.id = product.product_id || product.id;
+        
+        // Image logic (placeholder if not provided)
+        const imgUrl = product.image_url || 'https://via.placeholder.com/300x250?text=Product+Image';
+        
+        card.innerHTML = `
+            <img src="${imgUrl}" alt="${product.name || 'Product'}">
+            <div class="card-info">
+                <div class="card-title">${product.name || 'Unknown Product'}</div>
+                <div class="card-price">$${(product.price || 0).toFixed(2)}</div>
+                <p style="font-size: 0.9rem; color: #666; margin-top: 0.5rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    ${product.description || 'No description available.'}
+                </p>
+            </div>
+        `;
+        
+        container.appendChild(card);
+        initSwipeGesture(card);
+    }
+}
+
+function initSwipeGesture(card) {
+    let startX = 0, currentX = 0, isDragging = false;
+
+    const startDrag = (e) => {
+        isDragging = true;
+        startX = e.type.includes('mouse') ? e.pageX : e.touches[0].clientX;
+        card.style.transition = 'none'; // remove transition while dragging
+    };
+
+    const drag = (e) => {
+        if (!isDragging) return;
+        currentX = (e.type.includes('mouse') ? e.pageX : e.touches[0].clientX) - startX;
+        card.style.transform = `translateX(${currentX}px) rotate(${currentX * 0.05}deg)`;
+        
+        // Opacity logic for overlay effect (optional advanced styling)
+        // const opacity = Math.min(Math.abs(currentX) / 100, 1);
+    };
+
+    const endDrag = () => {
+        isDragging = false;
+        card.style.transition = 'transform 0.3s ease-out';
+        
+        const threshold = window.innerWidth * 0.25; // 25% of screen width
+        
+        if (currentX > threshold) {
+            swipeCard(card, true); // Swiped Right
+        } else if (currentX < -threshold) {
+            swipeCard(card, false); // Swiped Left
+        } else {
+            card.style.transform = 'translateX(0) rotate(0)'; // Snap back
+        }
+        currentX = 0;
+    };
+
+    card.addEventListener('mousedown', startDrag);
+    card.addEventListener('mousemove', drag);
+    window.addEventListener('mouseup', endDrag); // Attach to window for out-of-bounds release
+
+    card.addEventListener('touchstart', startDrag);
+    card.addEventListener('touchmove', drag);
+    card.addEventListener('touchend', endDrag);
+}
+
+async function swipeCard(card, liked) {
+    // Animate fly away
+    const flyX = liked ? window.innerWidth : -window.innerWidth;
+    card.style.transform = `translateX(${flyX}px) rotate(${liked ? 30 : -30}deg)`;
+    card.style.opacity = 0;
+    
+    // Call API
+    const productId = card.dataset.id;
+    try {
+        await fetchAPI('/swipe', 'POST', { product_id: productId, liked: liked ? 1 : 0 });
+        if(liked) {
+            // Also optionally add to cart automatically? Or just call API
+        }
+    } catch(err) {
+        console.error("Failed to record swipe:", err);
+    }
+    
+    // Remove from DOM after animation
+    setTimeout(() => {
+        card.remove();
+        currentCardIndex++;
+        if (currentCardIndex >= products.length) {
+            noMoreCards.style.display = 'block';
+        }
+    }, 300);
+}
+
+function handleButtonClick(liked) {
+    const cards = document.querySelectorAll('.swipe-card');
+    if (cards.length === 0) return;
+    
+    // The top card is the last child in the container that is a swipe-card
+    const topCard = cards[cards.length - 1]; 
+    if(topCard) {
+        swipeCard(topCard, liked);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', loadFeed);
+</script>
+{% endblock %}

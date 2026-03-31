@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SwipeShop - Tinder for E-commerce</title>
+    <!-- Use Flask url_for in the templates instead, but here we provide standard paths since this is static HTML base -->
+    <link rel="stylesheet" href="/static/css/style.css">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <header>
+        <nav>
+            <div class="logo"><a href="/" style="margin:0;">SwipeShop</a></div>
+            <div class="nav-links">
+                <!-- Guest Links -->
+                <a href="/login" class="nav-guest">Login</a>
+                <a href="/register" class="nav-guest">Register</a>
+                
+                <!-- Authenticated Links -->
+                <a href="/feed" class="nav-auth" style="display:none;">Feed</a>
+                <a href="/cart" class="nav-auth" style="display:none;">Cart</a>
+                <a href="/orders" class="nav-auth" style="display:none;">Orders</a>
+                
+                <!-- Role Specific Links -->
+                <a href="/seller/dashboard" class="nav-seller nav-auth" style="display:none;">Seller Dashboard</a>
+                <a href="/admin/dashboard" class="nav-admin nav-auth" style="display:none;">Admin Dashboard</a>
+                
+                <a href="#" id="logoutBtn" class="nav-auth" style="display:none;">Logout</a>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <script src="/static/js/api.js"></script>
+    <script>
+        // Intercept logout link
+        document.addEventListener('DOMContentLoaded', () => {
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    // Clear local storage and redirect
+                    localStorage.removeItem('user_role');
+                    localStorage.removeItem('user_id');
+                    // Optionally hit a logout API endpoint if implemented on backend
+                    window.location.href = '/login';
+                });
+            }
+        });
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

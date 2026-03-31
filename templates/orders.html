@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container" style="max-width: 800px;">
+    <h2>Order History</h2>
+    <div id="ordersAlert" class="alert"></div>
+
+    <div class="table-responsive">
+        <table id="ordersTable">
+            <thead>
+                <tr>
+                    <th>Order ID</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                    <th>Total</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="ordersBody">
+                <!-- Orders injected here -->
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Mocking order history fetch
+let orders = [
+    { order_id: 101, date: '2024-03-30', status: 'Shipped', total: 109.97 },
+    { order_id: 102, date: '2024-03-31', status: 'Processing', total: 49.99 }
+];
+
+function renderOrders() {
+    const tbody = document.getElementById('ordersBody');
+    tbody.innerHTML = '';
+    
+    if (orders.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No orders found.</td></tr>';
+    } else {
+        orders.forEach(order => {
+            tbody.innerHTML += `
+                <tr>
+                    <td>#${order.order_id}</td>
+                    <td>${order.date}</td>
+                    <td><span style="padding: 0.3rem 0.6rem; border-radius: 4px; background: #e2e3e5; font-size: 0.9em;">${order.status}</span></td>
+                    <td>$${order.total.toFixed(2)}</td>
+                    <td><a href="/review/write?order_id=${order.order_id}" class="btn btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.9em; width: auto;">Write Review</a></td>
+                </tr>
+            `;
+        });
+    }
+}
+
+document.addEventListener('DOMContentLoaded', renderOrders);
+</script>
+{% endblock %}

@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container" style="max-width: 800px;">
+    <h2>Your Cart</h2>
+    <div id="cartAlert" class="alert"></div>
+
+    <div class="table-responsive">
+        <table id="cartTable">
+            <thead>
+                <tr>
+                    <th>Product</th>
+                    <th>Price</th>
+                    <th>Qty</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+            <tbody id="cartBody">
+                <!-- Cart items injected here -->
+            </tbody>
+        </table>
+    </div>
+
+    <div style="text-align: right; margin-top: 2rem;">
+        <h3>Total: $<span id="cartTotal">0.00</span></h3>
+        <button id="btnCheckout" class="btn" style="width: auto; margin-top: 1rem;">Checkout via Address 1</button>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Mock fetching cart since we don't have a GET /api/cart route in the python code snippet
+// In a real scenario, this would fetch from /api/cart
+let cartItems = [
+    { product_id: 1, name: 'Sample Product 1', price: 29.99, qty: 2 },
+    { product_id: 2, name: 'Sample Product 2', price: 49.99, qty: 1 }
+];
+
+function renderCart() {
+    const tbody = document.getElementById('cartBody');
+    tbody.innerHTML = '';
+    let total = 0;
+    
+    if (cartItems.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Your cart is empty.</td></tr>';
+        document.getElementById('btnCheckout').disabled = true;
+    } else {
+        cartItems.forEach(item => {
+            const itemTotal = item.price * item.qty;
+            total += itemTotal;
+            tbody.innerHTML += `
+                <tr>
+                    <td>${item.name}</td>
+                    <td>$${item.price.toFixed(2)}</td>
+                    <td>${item.qty}</td>
+                    <td>$${itemTotal.toFixed(2)}</td>
+                </tr>
+            `;
+        });
+        document.getElementById('btnCheckout').disabled = false;
+    }
+    document.getElementById('cartTotal').textContent = total.toFixed(2);
+}
+
+document.getElementById('btnCheckout').addEventListener('click', async () => {
+    try {
+        // Assume address_id = 1 for prompt simplicity
+        await fetchAPI('/checkout', 'POST', { address_id: 1 });
+        showMessage('cartAlert', 'Order placed successfully!', false);
+        cartItems = []; // clear cart
+        renderCart();
+        setTimeout(() => {
+            window.location.href = '/orders';
+        }, 2000);
+    } catch (err) {
+        showMessage('cartAlert', err.message, true);
+    }
+});
+
+document.addEventListener('DOMContentLoaded', renderCart);
+</script>
+{% endblock %}
