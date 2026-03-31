@@ -61,18 +61,18 @@ async function loadReport() {
         let totalRevenue = 0;
         
         results.forEach(row => {
-            const revenue = row.total_revenue || row.revenue || 0;
+            const revenue = parseFloat(row.total_revenue || row.revenue || 0);
             totalRevenue += revenue;
             tbody.innerHTML += `
                 <tr>
                     <td>${row.report_date || row.date || 'N/A'}</td>
-                    <td>$${revenue.toFixed(2)}</td>
+                    <td>$${parseFloat(revenue).toFixed(2)}</td>
                     <td>${row.orders_count || 0}</td>
                 </tr>
             `;
         });
         
-        document.getElementById('totSales').textContent = "$" + totalRevenue.toFixed(2);
+        document.getElementById('totSales').textContent = "$" + parseFloat(totalRevenue).toFixed(2);
         
     } catch(err) {
         showMessage('adminAlert', err.message, true);

@@ -79,6 +79,7 @@ CREATE TABLE products (
     price DECIMAL(10,2) NOT NULL CHECK (price > 0),
     stock INT NOT NULL CHECK (stock >= 0),
     avg_rating DECIMAL(3,2) NOT NULL DEFAULT 0.00,
+    image_url VARCHAR(500),
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 

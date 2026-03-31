@@ -1,6 +1,13 @@
 {% extends "base.html" %}
 {% block content %}
-<h2 style="text-align: center; margin-bottom: 1rem;">Discover Products</h2>
+<h2 style="text-align: center; margin-bottom: 0.5rem;">Discover Products</h2>
+
+<!-- User Interests Section -->
+<div id="interestsSection" style="max-width: 500px; margin: 0 auto 1.5rem; text-align: center;">
+    <p style="font-size: 0.9rem; color: #666; margin-bottom: 0.5rem;">Your Interests:</p>
+    <div id="interestsTags" style="display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center;"></div>
+</div>
+
 <div id="feedAlert" class="alert" style="max-width: 500px; margin: 0 auto;"></div>
 
 <div class="swipe-container" id="swiperContainer">
@@ -15,6 +22,47 @@
     <button class="btn-circle btn-dislike" id="btnDislike" aria-label="Dislike" onclick="handleButtonClick(false)">✕</button>
     <button class="btn-circle btn-like" id="btnLike" aria-label="Like" onclick="handleButtonClick(true)">♥</button>
 </div>
+
+<style>
+#interestsTags {
+    animation: fadeIn 0.3s ease-in;
+}
+
+.interest-tag {
+    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+    color: white;
+    padding: 0.4rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    box-shadow: 0 2px 6px rgba(231, 76, 60, 0.3);
+    transition: all 0.2s ease;
+}
+
+.interest-tag:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 10px rgba(231, 76, 60, 0.4);
+}
+
+.interest-percentage {
+    font-size: 0.75rem;
+    opacity: 0.9;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+</style>
 {% endblock %}
 
 {% block extra_js %}
@@ -25,10 +73,15 @@ let currentCardIndex = 0;
 // Elements
 const container = document.getElementById('swiperContainer');
 const noMoreCards = document.getElementById('noMoreCards');
+const interestsTags = document.getElementById('interestsTags');
 
-// Fetch feed on load
+// Fetch user interests and feed on load
 async function loadFeed() {
     try {
+        // Load interests
+        await loadUserInterests();
+        
+        // Load feed
         products = await fetchAPI('/feed');
         if (products.length === 0) {
             noMoreCards.style.display = 'block';
@@ -40,6 +93,46 @@ async function loadFeed() {
     }
 }
 
+/**
+ * Load and display user's category interests
+ */
+async function loadUserInterests() {
+    try {
+        const interests = await fetchAPI('/user-interests');
+        
+        if (interests.length === 0) {
+            interestsTags.innerHTML = '<span style="color: #999; font-size: 0.9rem;">👉 Start swiping to build your interests</span>';
+            return;
+        }
+        
+        interestsTags.innerHTML = '';
+        interests.slice(0, 5).forEach(interest => {
+            const percentage = parseFloat(interest.interest_percentage || 0).toFixed(0);
+            const tag = document.createElement('span');
+            tag.className = 'interest-tag';
+            tag.innerHTML = `
+                💎 ${interest.category_name}
+                <span class="interest-percentage">${percentage}%</span>
+            `;
+            interestsTags.appendChild(tag);
+        });
+    } catch (err) {
+        console.log('Interests not available yet:', err.message);
+        interestsTags.innerHTML = '<span style="color: #999; font-size: 0.9rem;">👉 Start swiping to see interests</span>';
+    }
+}
+
+/**
+ * Reload interests when user swipes (to show updated interests)
+ */
+async function refreshInterests() {
+    try {
+        await loadUserInterests();
+    } catch (err) {
+        console.log('Could not refresh interests:', err.message);
+    }
+}
+
 function renderCards() {
     // Render cards from back to front so the first is on top
     for (let i = products.length - 1; i >= 0; i--) {
@@ -48,14 +141,21 @@ function renderCards() {
         card.className = 'swipe-card';
         card.dataset.id = product.product_id || product.id;
         
-        // Image logic (placeholder if not provided)
+        // Image logic with multiple fallback sources
         const imgUrl = product.image_url || 'https://via.placeholder.com/300x250?text=Product+Image';
+        const fallbackImages = [
+            'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="300" height="250"%3E%3Crect fill="%23f0f0f0" width="300" height="250"/%3E%3Ctext x="50%25" y="50%25" font-family="Arial" font-size="18" fill="%23999" text-anchor="middle" dy=".3em"%3EProduct Image%3C/text%3E%3C/svg%3E'
+        ];
         
         card.innerHTML = `
-            <img src="${imgUrl}" alt="${product.name || 'Product'}">
+            <img src="${imgUrl}" 
+                 alt="${product.name || 'Product'}"
+                 onerror="this.style.backgroundColor='#f0f0f0'; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22300%22 height=%22250%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22300%22 height=%22250%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 font-family=%22Arial%22 font-size=%2216%22 fill=%22%23999%22 text-anchor=%22middle%22 dy=%22.3em%22%3E${encodeURIComponent(product.name || 'Product')}%3C/text%3E%3C/svg%3E';"
+                 style="width:100%; height:250px; object-fit:cover; background:#f0f0f0;">
             <div class="card-info">
                 <div class="card-title">${product.name || 'Unknown Product'}</div>
-                <div class="card-price">$${(product.price || 0).toFixed(2)}</div>
+                <div style="font-size: 0.8rem; color: #888; margin-bottom: 0.3rem;">${product.category_name || 'Category'}</div>
+                <div class="card-price">$${parseFloat(product.price || 0).toFixed(2)}</div>
                 <p style="font-size: 0.9rem; color: #666; margin-top: 0.5rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                     ${product.description || 'No description available.'}
                 </p>
@@ -64,6 +164,9 @@ function renderCards() {
         
         container.appendChild(card);
         initSwipeGesture(card);
+        
+        // Log for debugging
+        console.log(`📸 Loading: ${product.name} from ${imgUrl}`);
     }
 }
 
@@ -116,21 +219,33 @@ async function swipeCard(card, liked) {
     card.style.transform = `translateX(${flyX}px) rotate(${liked ? 30 : -30}deg)`;
     card.style.opacity = 0;
     
-    // Call API
+    // Get product details
     const productId = card.dataset.id;
+    const productName = card.querySelector('.card-title')?.textContent || 'Product';
+    
+    // Call API
     try {
-        await fetchAPI('/swipe', 'POST', { product_id: productId, liked: liked ? 1 : 0 });
-        if(liked) {
-            // Also optionally add to cart automatically? Or just call API
+        const response = await fetchAPI('/swipe', 'POST', { product_id: productId, liked: liked ? 1 : 0 });
+        
+        if (liked) {
+            console.log(`✅ LIKED: ${productName} (ID: ${productId}) → Added to Liked Products`);
+            showMessage('feedAlert', `💚 Liked "${productName}" - Check your Liked Products!`, false);
+            // Refresh interests to show updated preferences
+            await refreshInterests();
+        } else {
+            console.log(`❌ DISCARDED: ${productName} (ID: ${productId})`);
+            showMessage('feedAlert', `👋 Discarded "${productName}"`, false);
         }
     } catch(err) {
         console.error("Failed to record swipe:", err);
+        showMessage('feedAlert', `Error: ${err.message}`, true);
     }
     
     // Remove from DOM after animation
     setTimeout(() => {
         card.remove();
         currentCardIndex++;
+        console.log(`📊 Progress: ${currentCardIndex}/${products.length}`);
         if (currentCardIndex >= products.length) {
             noMoreCards.style.display = 'block';
         }

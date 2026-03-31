@@ -29,6 +29,10 @@ def register_page():
 def feed_page():
     return render_template("swipe_feed.html")
 
+@app.route("/liked")
+def liked_page():
+    return render_template("liked.html")
+
 @app.route("/cart")
 def cart_page():
     return render_template("cart.html")

@@ -35,7 +35,7 @@ async function loadProduct() {
         if (!product) throw new Error("Product not found");
 
         document.getElementById('pdTitle').textContent = product.name;
-        document.getElementById('pdPrice').textContent = "$" + (product.price || 0).toFixed(2);
+        document.getElementById('pdPrice').textContent = "$" + parseFloat(product.price || 0).toFixed(2);
         document.getElementById('pdDesc').textContent = product.description || 'No description provided for this item.';
         document.getElementById('pdImage').src = product.image_url || 'https://via.placeholder.com/600x400?text=Product+Image';
         

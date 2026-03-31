@@ -47,4 +47,4 @@ def login():
         session["role"] = user["role"]
         return jsonify({"message": "Login success", "user_id": user["user_id"]})
 
-    return jsonify({"error": "Invalid credentials"}), 401
+    return jsonify({"error": "Invalid credentials"}), 401

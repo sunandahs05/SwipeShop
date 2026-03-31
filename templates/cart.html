@@ -29,12 +29,26 @@
 
 {% block extra_js %}
 <script>
-// Mock fetching cart since we don't have a GET /api/cart route in the python code snippet
-// In a real scenario, this would fetch from /api/cart
-let cartItems = [
-    { product_id: 1, name: 'Sample Product 1', price: 29.99, qty: 2 },
-    { product_id: 2, name: 'Sample Product 2', price: 49.99, qty: 1 }
-];
+let cartItems = [];
+
+async function loadCart() {
+    try {
+        const response = await fetch('/api/cart');
+        
+        if (!response.ok) {
+            if (response.status === 401) {
+                window.location.href = '/login';
+                return;
+            }
+            throw new Error('Failed to load cart');
+        }
+
+        cartItems = await response.json();
+        renderCart();
+    } catch (error) {
+        showMessage('cartAlert', 'Error loading cart: ' + error.message, true);
+    }
+}
 
 function renderCart() {
     const tbody = document.getElementById('cartBody');
@@ -46,20 +60,20 @@ function renderCart() {
         document.getElementById('btnCheckout').disabled = true;
     } else {
         cartItems.forEach(item => {
-            const itemTotal = item.price * item.qty;
+            const itemTotal = parseFloat(item.price) * parseInt(item.quantity);
             total += itemTotal;
             tbody.innerHTML += `
                 <tr>
                     <td>${item.name}</td>
-                    <td>$${item.price.toFixed(2)}</td>
-                    <td>${item.qty}</td>
-                    <td>$${itemTotal.toFixed(2)}</td>
+                    <td>$${parseFloat(item.price).toFixed(2)}</td>
+                    <td>${item.quantity}</td>
+                    <td>$${parseFloat(itemTotal).toFixed(2)}</td>
                 </tr>
             `;
         });
         document.getElementById('btnCheckout').disabled = false;
     }
-    document.getElementById('cartTotal').textContent = total.toFixed(2);
+    document.getElementById('cartTotal').textContent = parseFloat(total).toFixed(2);
 }
 
 document.getElementById('btnCheckout').addEventListener('click', async () => {
@@ -77,6 +91,6 @@ document.getElementById('btnCheckout').addEventListener('click', async () => {
     }
 });
 
-document.addEventListener('DOMContentLoaded', renderCart);
+document.addEventListener('DOMContentLoaded', loadCart);
 </script>
 {% endblock %}

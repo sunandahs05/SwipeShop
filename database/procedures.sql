@@ -147,6 +147,9 @@ BEGIN
         p.product_id,
         p.name,
         p.price,
+        p.description,
+        p.image_url,
+        p.avg_rating,
         COALESCE(ps.score, 0) AS preference_score
     FROM products p
     LEFT JOIN preference_scores ps
@@ -155,8 +158,45 @@ BEGIN
     WHERE p.product_id NOT IN (
         SELECT product_id FROM swipes WHERE user_id = p_user_id
     )
+    AND p.is_active = TRUE
     ORDER BY preference_score DESC, p.created_at DESC
     LIMIT p_limit;
+END $$
+
+DELIMITER ;
+
+-- ============================================
+-- PROCEDURE: get_liked_products
+-- Purpose:
+-- Returns all products that a user has liked (swiped right on)
+-- Includes product details and avg_rating
+-- ============================================
+DROP PROCEDURE IF EXISTS get_liked_products;
+
+DELIMITER $$
+
+CREATE PROCEDURE get_liked_products(
+    IN p_user_id INT
+)
+BEGIN
+    SELECT DISTINCT
+        p.product_id,
+        p.name,
+        p.description,
+        p.price,
+        p.image_url,
+        p.avg_rating,
+        p.category_id,
+        c.name AS category_name,
+        s.swiped_at,
+        p.seller_id
+    FROM products p
+    JOIN swipes s ON p.product_id = s.product_id
+    JOIN categories c ON p.category_id = c.category_id
+    WHERE s.user_id = p_user_id 
+      AND s.liked = TRUE
+      AND p.is_active = TRUE
+    ORDER BY s.swiped_at DESC;
 END $$
 
 DELIMITER ;
